@@ -1,7 +1,7 @@
 ---
 title: "feat: Rewrite Remove BG backend in berlin workspace"
 type: feat
-status: completed
+status: draft
 date: 2026-03-30
 origin: docs/brainstorms/2026-03-30-rembg-backend-rewrite-requirements.md
 ---
@@ -39,7 +39,7 @@ The original backend bundles three features (Remove BG, Voice Clone, Image-to-3D
 
 ### Relevant Code and Patterns
 
-Original backend at `/Users/b40160/Downloads/Life-Course/Life-Course-Remove-Background-main/backend/app/`:
+Original backend at `backend/app/`:
 - `main.py` — app setup, lifespan, middleware, health check
 - `config.py` — env-based config as plain functions
 - `constants.py` — centralized constants with `frozenset` for MIME sets
@@ -200,8 +200,8 @@ Original backend at `/Users/b40160/Downloads/Life-Course/Life-Course-Remove-Back
   - Lifespan: only load `rembg.new_session()` into `app.state.rembg_session` (no TTS)
   - CORS middleware using `get_cors_allowed_origins()`
   - Security headers middleware (same 4 headers as original)
-  - `GET /health` checking only rembg readiness
-  - Include only `images_router`
+  - `GET /health` checking rembg readiness
+  - Include `images_router`
   - Swagger docs gated by `is_docs_enabled()`
 
   **Patterns to follow:**
@@ -225,5 +225,5 @@ Original backend at `/Users/b40160/Downloads/Life-Course/Life-Course-Remove-Back
 ## Sources & References
 
 - **Origin document:** [docs/brainstorms/2026-03-30-rembg-backend-rewrite-requirements.md](../brainstorms/2026-03-30-rembg-backend-rewrite-requirements.md)
-- Original backend: `/Users/b40160/Downloads/Life-Course/Life-Course-Remove-Background-main/backend/app/`
+- Original backend: `backend/app/`
 - rembg library: used for background removal via `new_session()` and `remove()`

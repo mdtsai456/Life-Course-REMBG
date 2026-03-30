@@ -59,7 +59,7 @@ async def remove_background(file: UploadFile, request: Request) -> Response:
             loop.run_in_executor(None, partial(remove, contents, session=session)),
             timeout=_timeout,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("Background removal timed out after %.0fs", _timeout)
         raise HTTPException(
             status_code=504,
