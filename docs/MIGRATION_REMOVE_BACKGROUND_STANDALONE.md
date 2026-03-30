@@ -6,6 +6,8 @@
 
 **現況（`Life-Course-REMBG`）：** 來源檔案已複製；**§3.1–§3.10** 精簡已完成；**§5.1 後端**、**§5.2 前端**（`npm install`、`npm run dev`、瀏覽器呼叫去背）已驗；§4.5 主要項已勾選（見下表）。
 
+**整併與驗證紀錄（對 `main`）：** 以 `main` 為基底另開分支 **`sync/main-fe`**，自 **`dev/rmb-migration`** 選取帶入 **`docs/MIGRATION_REMOVE_BACKGROUND_STANDALONE.md`** 與 **`frontend/`**（避免與 `main` 直接 merge 造成大量衝突合併）。**後端沿用 `main`**，與本文件最初假設「測試集與後端同線自遷移分支」略有出入（例如 `backend/tests` 是否齊備、pytest 筆數可能與 §5.1 表格不同），但**實測**後 **`GET /health`**、**Vite dev + `/api` proxy**、**瀏覽器去背流程**均正常。**結論：** 自原專案拆出之 **standalone** 路線已與 **`main` 整併並驗證通過**（merge + smoke／§5 核心項目 OK）。
+
 ---
 
 ## 1. 可行性分析
@@ -314,7 +316,7 @@ Life-Course-REMBG/
    - `cd` 至專案目錄後 `cd backend`
 1. 在 **`backend/`** 安裝依賴：
    - `python -m pip install -r requirements.txt`
-2. 執行測試（工作目錄為 `backend/`，使 `app` 可匯入）：
+(2.) 執行測試（工作目錄為 `backend/`，使 `app` 可匯入）：(此版本暫無測試腳本)
    - `python -m pytest tests -q`
 3. 啟動 API：
    - `uvicorn app.main:app --reload --port 8000`
@@ -368,5 +370,5 @@ Life-Course-REMBG/
 
 ---
 
-**Document version:** 2026-03-30 — §3 搬移精簡已完成；**§5.1–§5.2 本機驗證已完成**（pytest、`/health`、Vite、POST 去背 200；`main.jsx` 無 `model-viewer`、`ErrorBoundary.jsx` 已納入）。更新本行時請同步檢查開頭「現況」、§3.11、§4.5、§5.2，避免與表格矛盾。  
+**Document version:** 2026-03-30 — §3 搬移精簡已完成；**§5.1–§5.2 本機驗證已完成**（pytest、`/health`、Vite、POST 去背 200；`main.jsx` 無 `model-viewer`、`ErrorBoundary.jsx` 已納入）。**2026-03-30 補：** `sync/main-fe` → `main` 整併紀錄已寫於開頭「**整併與驗證紀錄**」；後端以 `main` 為準時與下文 §5 測試矩陣可能略有出入，以實測為準。更新本行時請同步檢查開頭「現況」、整併紀錄、§3.11、§4.5、§5.2，避免與表格矛盾。  
 **Related snapshot repo:** `Life-Course-Remove-Background`（來源）；獨立專案：`Life-Course-REMBG`
