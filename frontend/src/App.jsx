@@ -1,0 +1,14 @@
+import ImageUploader from './components/ImageUploader'
+
+export default function App() {
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>圖片去背</h1>
+      </header>
+      <main>
+        <ImageUploader visible />
+      </main>
+    </div>
+  )
+}
