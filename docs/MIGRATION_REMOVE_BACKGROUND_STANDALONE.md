@@ -4,7 +4,7 @@
 
 **Audience:** 執行拆倉的工程師（非僅複製貼上即可完成）。
 
-**現況（`Life-Course-REMBG`）：** 來源檔案已複製；**§3.1–§3.10** 精簡已完成。**下一步**為本機安裝依賴並依 **§5**／**§4.5** 驗證前後端運行（見下文）。
+**現況（`Life-Course-REMBG`）：** 來源檔案已複製；**§3.1–§3.10** 精簡已完成；**§5.1 後端**、**§5.2 前端**（`npm install`、`npm run dev`、瀏覽器呼叫去背）已驗；§4.5 主要項已勾選（見下表）。
 
 ---
 
@@ -128,6 +128,7 @@ Life-Course-REMBG/
 │       ├── index.css
 │       ├── constants.js
 │       ├── components/
+│       │   ├── ErrorBoundary.jsx
 │       │   ├── ImageUploader.jsx
 │       │   ├── LoadingButton.jsx
 │       │   └── ProgressStatus.jsx
@@ -166,7 +167,7 @@ Life-Course-REMBG/
 | §3.4 | `backend/tests/conftest.py` | ✅ |
 | §3.5 | `backend/tests/test_health.py` | ✅ |
 | §3.6 | `backend/tests/test_docs_toggle.py` | ✅ |
-| §3.7 | `frontend/package.json` | ✅（manifest；`npm install`／lockfile 延後） |
+| §3.7 | `frontend/package.json` | ✅（含本機 `npm install`／lockfile 已更新） |
 | §3.8 | `frontend/src/App.jsx` | ✅ |
 | §3.9 | `frontend/src/services/api.js` | ✅ |
 | §3.10 | `frontend/src/index.css` | ✅ |
@@ -234,7 +235,7 @@ Life-Course-REMBG/
 ### 3.7 `frontend/package.json` ✅（manifest）
 
 - [x] 自 `dependencies` **移除** `@google/model-viewer`。
-- [ ] 於 `frontend/` 執行 `npm install` 以更新 `package-lock.json`（**延後**：§3.8–§3.10 已完成；於你方便時在 `frontend/` 安裝依賴即可。）
+- [x] 於 `frontend/` 執行 `npm install` 以更新 `package-lock.json`（與已移除之 `@google/model-viewer` 對齊）。
 
 ### 3.8 `frontend/src/App.jsx` ✅
 
@@ -257,8 +258,9 @@ Life-Course-REMBG/
 |------|:----:|
 | §2 檔案複製至本 repo | ✅ |
 | §3.1–§3.10 程式／測試／前端精簡 | ✅ |
-| `frontend/package-lock.json` 與 `npm install` | ⬜ 待操作者於 `frontend/` 執行（更新 lock） |
-| 本機啟動與 §4.5 驗收 | ⬜ 待依 §5 執行 |
+| `frontend/package-lock.json` 與 `npm install` | ✅ |
+| §5.1 後端（pytest、`uvicorn`、`GET /health`） | ✅ |
+| §5.2 前端與瀏覽器 E2E | ✅ |
 
 **可選清理：** 來源曾複製之 `VoiceCloner.jsx`、`ImageTo3D.jsx` 若仍留在 `frontend/src/components/` 且未被引用，可刪檔減少混淆（非啟動必要條件）。
 
@@ -292,11 +294,11 @@ Life-Course-REMBG/
 
 ### 4.5 驗收清單（建議）
 
-- [ ] `GET /health` 僅反映 rembg，且模型載入後為 200。
-- [ ] `POST /api/remove-background`：合法圖 → `200`、`image/png`；過大 → `413`；錯誤型別 → `415`。
-- [ ] 前端：選圖 → 去背結果預覽與下載正常；無 CORS 錯誤（與 `CORS_ALLOWED_ORIGINS` 一致）。
-- [ ] `pytest` 全綠（在精簡後的測試集下）。
-- [ ] 新專案 `requirements.txt` 不含 `torch`／`coqui-tts`（除非刻意保留）。
+- [x] `GET /health` 僅反映 rembg，且模型載入後為 200。（**§5.1 已驗**）
+- [x] `POST /api/remove-background`：合法圖 → `200`、`image/png`；過大 → `413`；錯誤型別 → `415`。（**pytest** 覆蓋驗證案例；**§5.2** 手動多次 `POST` 回 **200 OK**）
+- [x] 前端：選圖 → 去背結果預覽與下載正常；無 CORS 錯誤（與 `CORS_ALLOWED_ORIGINS` 一致）。（**§5.2 已驗**；預設 `localhost:5173`）
+- [x] `pytest` 全綠（在精簡後的測試集下）。（**14 passed**，§5.1）
+- [x] 新專案 `requirements.txt` 不含 `torch`／`coqui-tts`（除非刻意保留）。
 
 ---
 
@@ -306,13 +308,27 @@ Life-Course-REMBG/
 
 ### 5.1 後端
 
-1. 建議使用乾淨 **venv**，在 **`backend/`** 目錄：
+0. 環境建立（範例：Conda）
+   - `conda create --name Life-Course-REMBG python=3.11`
+   - `conda activate Life-Course-REMBG`
+   - `cd` 至專案目錄後 `cd backend`
+1. 在 **`backend/`** 安裝依賴：
    - `python -m pip install -r requirements.txt`
 2. 執行測試（工作目錄為 `backend/`，使 `app` 可匯入）：
    - `python -m pytest tests -q`
 3. 啟動 API：
    - `uvicorn app.main:app --reload --port 8000`
-4. 檢查：`GET http://localhost:8000/health` → `200`，`checks` 僅含 `rembg`；首次請求去背可能觸發 rembg 模型下載，屬正常。
+4. 檢查：`GET http://localhost:8000/health` → `200`，`checks` 僅含 `rembg`；首次實際去背請求可能觸發 rembg 模型下載，屬正常。
+
+**§5.1 驗證完成紀錄（本機）**
+
+| 項目 | 結果 |
+|------|------|
+| 環境 | Conda `Life-Course-REMBG`（Python 3.11），於 `backend/` 安裝 `requirements.txt` |
+| `python -m pytest tests -q` | **14 passed**（可能有 `pytest-asyncio` 之 `asyncio_default_fixture_loop_scope` 提示，不影響通過） |
+| `uvicorn app.main:app --reload --port 8000` | 啟動成功；日誌顯示 `Application startup complete.` |
+| `GET /health` | **200**，本體約為 `{"status":"ok","checks":{"rembg":true}}` |
+| 備註 | `GET /`、`GET /healthy` 若 **404** 屬預期（未實作根路徑；健康檢查路徑為 **`/health`**） |
 
 ### 5.2 前端
 
@@ -321,6 +337,15 @@ Life-Course-REMBG/
    - `npm run dev`（預設常為 `http://localhost:5173`，並將 `/api` proxy 至 `8000`）
 2. 確認 **後端已先於 8000 埠運行**，否則 proxy 會失敗。
 3. 若前端 origin 非預設，設定環境變數 **`CORS_ALLOWED_ORIGINS`**（後端）為實際 origin。
+
+**§5.2 驗證完成紀錄（本機）**
+
+| 項目 | 結果 |
+|------|------|
+| `npm install` | 成功；`package-lock.json` 已與現行 `package.json` 對齊 |
+| `npm run dev`（Vite 8） | **ready**，`Local: http://localhost:5173/`；首次可出現 dependency pre-bundle 訊息，屬正常 |
+| 瀏覽器 → 後端 | `POST /api/remove-background` 多筆 **200 OK**（uvicorn 日誌） |
+| 補件（若曾報錯） | 已自 **`main.jsx` 移除** `import '@google/model-viewer'`；並補 **`components/ErrorBoundary.jsx`**（與 `main.jsx` 引用一致） |
 
 ### 5.3 Shell 注意（Windows）
 
@@ -343,5 +368,5 @@ Life-Course-REMBG/
 
 ---
 
-**Document version:** 2026-03-30 — §3 搬移精簡已完成；新增 **§5 驗證與啟動**、**§3.11** 摘要；§2.5 更新；附錄為 **§6**。  
+**Document version:** 2026-03-30 — §3 搬移精簡已完成；**§5.1–§5.2 本機驗證已完成**（pytest、`/health`、Vite、POST 去背 200；`main.jsx` 無 `model-viewer`、`ErrorBoundary.jsx` 已納入）。更新本行時請同步檢查開頭「現況」、§3.11、§4.5、§5.2，避免與表格矛盾。  
 **Related snapshot repo:** `Life-Course-Remove-Background`（來源）；獨立專案：`Life-Course-REMBG`
