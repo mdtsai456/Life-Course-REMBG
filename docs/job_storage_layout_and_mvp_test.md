@@ -124,7 +124,7 @@ type headers.txt
 
 4. 根據 X-Job-Id 查看結果
 
-- input_path: `backend\{STORAGE_ROOT}\input\{X-Job-Id}\result.png`
+- input_path: `backend\{STORAGE_ROOT}\input\{X-Job-Id}\original.png`
 - output_path: `backend\{STORAGE_ROOT}\input\{X-Job-Id}\result.png`
 
 ### 5.3 用前端測試 [測試成功]
