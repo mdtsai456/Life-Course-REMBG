@@ -14,7 +14,7 @@ def is_docs_enabled() -> bool:
 
 
 def get_remove_bg_timeout() -> float:
-    raw = os.getenv("REMOVE_BG_TIMEOUT", "30")
+    raw = os.getenv("REMOVE_BG_TIMEOUT", "60")
     try:
         value = float(raw)
     except (TypeError, ValueError):
