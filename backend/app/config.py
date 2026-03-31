@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 
 def get_cors_allowed_origins() -> list[str]:
@@ -21,3 +22,9 @@ def get_remove_bg_timeout() -> float:
     if value <= 0:
         raise ValueError(f"REMOVE_BG_TIMEOUT must be positive, got {value}")
     return value
+
+
+# For local default "./storage", run uvicorn from backend/ directory.
+def get_storage_root() -> Path:
+    raw = os.getenv("STORAGE_ROOT", "./storage")
+    return Path(raw).resolve()
