@@ -12,9 +12,7 @@ repo: Life-Course-REMBG
 
 ### 0.1 後端：`backend/requirements.txt`
 
-目前 repo 內可能尚無此檔；Zeabur 用 Python 建置時需要可依賴清單安裝。
-
-在本機 `backend/` 目錄建立 `requirements.txt`（版本可依你環境微調），例如：
+**本 repo 已包含** `backend/requirements.txt`；Zeabur Python 建置時以 `pip install -r requirements.txt` 安裝下列依賴（版本未鎖定，由解析結果決定）。若需調整套件或鎖版，請直接編輯該檔後再部署。
 
 ```text
 fastapi[standard]
@@ -24,7 +22,7 @@ rembg
 pillow
 ```
 
-本機驗證：
+選做 — 本機驗證（可在 CI 或 Zeabur 上驗證代替）：
 
 ```bash
 cd backend
@@ -39,13 +37,14 @@ curl -s http://127.0.0.1:8000/health
 
 開發時 `vite.config.js` 把 `/api` 轉到 `localhost:8000`；**打包後沒有這個 proxy**，瀏覽器會對「前端網域」發 `/api`，除非你做閘道轉發，否則會 404。
 
-**建議**：用 Vite 環境變數在 **build 時**帶入後端公開網址。
+**已實作**：`frontend/src/services/api.js` 會讀取 `import.meta.env.VITE_API_BASE_URL`；未設定或僅空白時仍使用相對路徑 `/api/...`，供本機 Vite proxy。程式會 **trim 空白** 並 **去掉結尾多餘的 `/`**，避免 Zeabur 變數貼上時手滑。
 
-1. 在 `frontend/src/services/api.js` 將請求基底改為可設定，例如使用 `import.meta.env.VITE_API_BASE_URL`（空字串則維持相對路徑，方便本機 dev）。
-2. 在 Zeabur 的 **前端 Service** 設定變數 `VITE_API_BASE_URL` = 後端 Service 的 **HTTPS 根網址**（無結尾斜線），例如 `https://你的後端.xxx.zeabur.app`。
-3. 每次改 `VITE_*` 需 **重新 build 前端**。
+**部署時請**：
 
-（後端路由實際路徑為 `POST /api/remove-background`，故完整 URL 為 `${VITE_API_BASE_URL}/api/remove-background`。）
+1. 在 Zeabur **前端 Service** 的 **Variables** 設定 `VITE_API_BASE_URL` = 後端 Service 的 **HTTPS 根網址**（建議無結尾 `/`；多餘斜線由前端正規化），例如 `https://你的後端.xxx.zeabur.app`。
+2. 每次變更 `VITE_*` 後需 **重新 build／Redeploy 前端**。
+
+（後端路由為 `POST /api/remove-background`，完整請求 URL 為 `${VITE_API_BASE_URL}/api/remove-background`。）
 
 ### 0.3 後端：CORS
 
@@ -188,8 +187,8 @@ npm run preview
 
 ## 6. 完成檢查表（勾選用）
 
-- [ ] `backend/requirements.txt` 已加入且本機 `uvicorn` 可啟動
-- [ ] 前端已用 `VITE_API_BASE_URL`（或等效）指向後端，且已重新 build
+- [ ] `backend/requirements.txt` 已在 repo 中；Zeabur 或本機 `uvicorn` 可啟動
+- [ ] Zeabur 前端已設定 `VITE_API_BASE_URL` 指向後端，且已重新 build
 - [ ] 後端 `CORS_ALLOWED_ORIGINS` 含前端正式網址
 - [ ] 後端 `DOCS_ENABLED=false`（若不想公開 OpenAPI）
 - [ ] 兩個 Service 的 Root Directory 分別為 `backend` / `frontend`
@@ -200,4 +199,4 @@ npm run preview
 
 ## Next Steps
 
-若要把「0.2 前端環境變數」與「0.1 requirements」實際寫進 repo，可再執行 `/ce:plan` 或開一個小 PR 專做 deploy 適配。
+依賴清單與 `VITE_API_BASE_URL` 行為已在 repo 內。後續可選：在 GitHub Actions 加上 `pip install` + 靜態檢查／漏洞掃描、或依 Zeabur 文件調整資源與持久化儲存；新功能需求再執行 `/ce:brainstorm` 或 `/ce:plan`。

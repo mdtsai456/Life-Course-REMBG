@@ -1,5 +1,6 @@
 function removeBackgroundApiUrl() {
-  const base = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+  const trimmed = String(import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  const base = trimmed.replace(/\/+$/, '')
   return base ? `${base}/api/remove-background` : '/api/remove-background'
 }
 
