@@ -13,7 +13,7 @@ Update the Zeabur deployment checklist so it matches the current repository (dep
 
 ## Problem Frame
 
-Readers following `docs/plans/2026-04-08-zeabur-deploy-checklist.md` may believe `backend/requirements.txt` is still missing and that `frontend/src/services/api.js` still needs a Vite env implementation—both are already in the repo. Separately, the API URL helper only strips a single trailing slash, which is slightly brittle for hand-entered Zeabur variables.
+This work addressed documentation drift: the Zeabur checklist had implied `backend/requirements.txt` or `VITE_API_BASE_URL` wiring might still be TODO, and `removeBackgroundApiUrl()` previously removed only one trailing `/` without trimming—both gaps are closed in-repo (checklist copy updated; helper now trims then strips all trailing slashes via `/+$/`).
 
 ## Requirements Trace
 
@@ -32,8 +32,8 @@ Readers following `docs/plans/2026-04-08-zeabur-deploy-checklist.md` may believe
 
 ### Relevant Code and Patterns
 
-- `frontend/src/services/api.js` — `removeBackgroundApiUrl()` uses `(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')` today; only one trailing slash removed, no trim.
-- `docs/plans/2026-04-08-zeabur-deploy-checklist.md` — §0.1 lines 15–17 still say the requirements file may be missing; §0.2 step 1 reads like an unimplemented change; §Next Steps still references opening a PR to land requirements and env wiring.
+- `frontend/src/services/api.js` — `removeBackgroundApiUrl()` trims `VITE_API_BASE_URL` then removes all trailing slashes with `/\/+$/`, then builds `${base}/api/remove-background` or falls back to `/api/remove-background`.
+- `docs/plans/2026-04-08-zeabur-deploy-checklist.md` — §0.1 states the repo already contains `requirements.txt`; §0.2 documents implemented behavior and Zeabur variables; Next Steps no longer asks for a PR solely to add requirements or env wiring.
 
 ### Institutional Learnings
 
@@ -119,7 +119,7 @@ Readers following `docs/plans/2026-04-08-zeabur-deploy-checklist.md` may believe
 **Test scenarios:**
 
 - Happy path — `VITE_API_BASE_URL` unset: request URL is `/api/remove-background` (local dev proxy unchanged).
-- Edge case — value `  https://api.example.com  `: effective base `https://api.example.com`, final URL `https://api.example.com/api/remove-background`.
+- Edge case — environment value with leading/trailing spaces around `https://api.example.com` (no spaces inside the URL itself): effective base `https://api.example.com`, final URL `https://api.example.com/api/remove-background`.
 - Edge case — value `https://api.example.com///`: final URL `https://api.example.com/api/remove-background` (no duplicated slashes before `api`).
 - Edge case — value whitespace-only: falls back to relative `/api/remove-background`.
 

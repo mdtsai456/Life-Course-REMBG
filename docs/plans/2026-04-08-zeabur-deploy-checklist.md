@@ -37,7 +37,7 @@ curl -s http://127.0.0.1:8000/health
 
 開發時 `vite.config.js` 把 `/api` 轉到 `localhost:8000`；**打包後沒有這個 proxy**，瀏覽器會對「前端網域」發 `/api`，除非你做閘道轉發，否則會 404。
 
-**已實作**：`frontend/src/services/api.js` 會讀取 `import.meta.env.VITE_API_BASE_URL`；未設定或僅空白時仍使用相對路徑 `/api/...`，供本機 Vite proxy。程式會 **trim 空白** 並 **去掉結尾多餘的 `/`**，避免 Zeabur 變數貼上時手滑。
+**已實作**：`frontend/src/services/api.js` 內 `removeBackgroundApiUrl()` 會讀取 `import.meta.env.VITE_API_BASE_URL`，先對字串 **trim** 再移除**所有**尾端 `/`；未設定或僅空白時仍使用相對路徑 `/api/...`（本機 Vite proxy），避免 Zeabur 變數貼上時多空白或斜線。
 
 **部署時請**：
 
