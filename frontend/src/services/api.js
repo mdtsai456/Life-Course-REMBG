@@ -1,3 +1,9 @@
+function removeBackgroundApiUrl() {
+  const trimmed = String(import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  const base = trimmed.replace(/\/+$/, '')
+  return base ? `${base}/api/remove-background` : '/api/remove-background'
+}
+
 async function postForBlob(url, formData, fallbackMessage, signal) {
   const response = await fetch(url, {
     method: 'POST',
@@ -30,5 +36,5 @@ async function postForBlob(url, formData, fallbackMessage, signal) {
 export async function removeBackground(file, signal) {
   const formData = new FormData()
   formData.append('file', file)
-  return postForBlob('/api/remove-background', formData, '移除背景失敗。', signal)
+  return postForBlob(removeBackgroundApiUrl(), formData, '移除背景失敗。', signal)
 }
