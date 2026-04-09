@@ -313,7 +313,7 @@ git commit -m "chore(docker): add compose stack for backend and web proxy"
 docker compose up -d --build
 ```
 
-- **本機瀏覽**：`http://localhost:8080/`（若將 compose 埠改為 `80:80`，則為 `http://localhost/`）。
+- **本機瀏覽**：`http://localhost:8080/`（若將 compose 埠改為 `80:8080`，則為 `http://localhost/`）。
 - **區網裝置**：在 Windows 以 `ipconfig` 查 IPv4，於手機／其他電腦開 `http://<該IPv4>:8080/`。
 - **防火牆**：視需要允許 **TCP 8080**（或你映射的埠）於「私人網路」連入。
 - **前端 API 基底網址**：與 Zeabur 不同，此模式**不必**設定 `VITE_API_BASE_URL`（未設定時前端使用相對路徑 `/api/...`）。
