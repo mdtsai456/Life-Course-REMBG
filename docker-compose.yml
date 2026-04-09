@@ -5,6 +5,8 @@ services:
     environment:
       DOCS_ENABLED: "false"
       STORAGE_ROOT: /data/storage
+      NUMBA_DISABLE_JIT: "1"
+      U2NET_HOME: /data/storage/u2net
     volumes:
       - backend_storage:/data/storage
     healthcheck:
