@@ -1,0 +1,35 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DOCS_ENABLED: "false"
+      STORAGE_ROOT: /data/storage
+      NUMBA_DISABLE_JIT: "1"
+      U2NET_HOME: /data/storage/u2net
+    volumes:
+      - backend_storage:/data/storage
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  backend_storage: {}
