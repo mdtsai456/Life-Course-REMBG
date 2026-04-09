@@ -10,6 +10,8 @@
 
 **對照規格：** `docs/superpowers/specs/2026-04-09-docker-lan-reverse-proxy-design.md`
 
+**實作狀態：** `backend/Dockerfile`、`frontend/Dockerfile`、`frontend/nginx.docker.conf`、`docker-compose.yml` 與 README「Docker（區網）」一節已合併於主線；下列 Task 核取方塊標為完成表示**交付物已在 repo**，手動驗證步驟（`docker build`／`compose up`／區網測試）仍建議在乾淨環境執行。
+
 ---
 
 ## 檔案結構（將建立或修改）
@@ -29,7 +31,7 @@
 **Files:**
 - Create: `backend/Dockerfile`
 
-- [ ] **Step 1: 新增 `backend/Dockerfile`（完整內容如下）**
+- [x] **Step 1: 新增 `backend/Dockerfile`（完整內容如下）**
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -57,7 +59,7 @@ EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-- [ ] **Step 2: 僅建置後端映像以驗證 Dockerfile**
+- [x] **Step 2: 僅建置後端映像以驗證 Dockerfile**
 
 Run（於 repo 根目錄）:
 
@@ -67,7 +69,7 @@ docker build -t life-course-rembg-backend:test ./backend
 
 Expected: 建置成功結束（exit code 0）。若 `pip` 或 `rembg` 於建置階段報缺少共享函式庫，將錯誤訊息對照 Debian 套件名補進 `apt-get install` 列後再重試。
 
-- [ ] **Step 3: 以一次性容器 smoke 測試 `/health`（模型載入較慢，逾時可酌調）**
+- [x] **Step 3: 以一次性容器 smoke 測試 `/health`（模型載入較慢，逾時可酌調）**
 
 Run:
 
@@ -78,9 +80,9 @@ curl -sS "http://127.0.0.1:18000/health"
 docker stop rembg-health-test
 ```
 
-Expected: `curl` 回傳 JSON，且內含 `"healthy":true`（或與現有 `GET /health` 實作一致）。若 90 秒內尚未就緒，延長 `sleep` 後重試；若始終失敗，檢視 `docker logs rembg-health-test`。
+Expected: HTTP **200** 時 `curl` 回傳 JSON，形狀與 `GET /health` 一致，例如含 `"status":"ok"` 與 `"checks":{"rembg":true}`（見 `backend/app/main.py`）。啟動完成前連線可能失敗或逾時；若 90 秒內尚未就緒，延長 `sleep` 後重試；若始終失敗，檢視 `docker logs rembg-health-test`。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/Dockerfile
@@ -94,7 +96,7 @@ git commit -m "chore(docker): add backend image for FastAPI and rembg"
 **Files:**
 - Create: `frontend/nginx.docker.conf`
 
-- [ ] **Step 1: 新增 `frontend/nginx.docker.conf`（完整內容如下）**
+- [x] **Step 1: 新增 `frontend/nginx.docker.conf`（完整內容如下）**
 
 ```nginx
 server {
@@ -106,6 +108,8 @@ server {
 
   client_max_body_size 10m;
 
+  # proxy_read_timeout／proxy_send_timeout 須大於 REMOVE_BG_TIMEOUT（見倉庫內 frontend/nginx.docker.conf 註解）
+
   location = /health {
     proxy_pass http://backend:8000/health;
     proxy_http_version 1.1;
@@ -114,7 +118,7 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_connect_timeout 10s;
-    proxy_read_timeout 120s;
+    proxy_read_timeout 300s;
   }
 
   location /api/ {
@@ -125,7 +129,8 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_connect_timeout 10s;
-    proxy_read_timeout 120s;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
   }
 
   location / {
@@ -136,7 +141,7 @@ server {
 
 說明（實作者無需改檔）：`proxy_pass http://backend:8000` 不帶路徑前綴，會把完整 URI（例如 `/api/remove-background`）轉到後端，與本機 Vite `proxy['/api'].target` 行為一致。
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add frontend/nginx.docker.conf
@@ -150,7 +155,7 @@ git commit -m "chore(docker): add nginx config for LAN single-origin proxy"
 **Files:**
 - Create: `frontend/Dockerfile`
 
-- [ ] **Step 1: 新增 `frontend/Dockerfile`（完整內容如下）**
+- [x] **Step 1: 新增 `frontend/Dockerfile`（完整內容如下）**
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -172,7 +177,7 @@ COPY nginx.docker.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 ```
 
-- [ ] **Step 2: 單獨建置前端映像（此時 Nginx 上游 `backend` 尚不存在，僅驗證 build 與靜態檔層）**
+- [x] **Step 2: 單獨建置前端映像（此時 Nginx 上游 `backend` 尚不存在，僅驗證 build 與靜態檔層）**
 
 Run:
 
@@ -182,7 +187,7 @@ docker build -t life-course-rembg-web:test ./frontend
 
 Expected: 建置成功結束（exit code 0）。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/Dockerfile
@@ -196,7 +201,7 @@ git commit -m "chore(docker): add multi-stage web image with nginx"
 **Files:**
 - Create: `docker-compose.yml`
 
-- [ ] **Step 1: 於 repo 根目錄新增 `docker-compose.yml`（完整內容如下）**
+- [x] **Step 1: 於 repo 根目錄新增 `docker-compose.yml`（完整內容如下）**
 
 ```yaml
 services:
@@ -236,7 +241,7 @@ volumes:
 
 說明：`8080:80` 避免在 Windows 上占用 80 埠常見的權限問題；若要以 80 對外，改為 `"80:80"` 並確保作業系統允許綁定。`start_period` 與 `retries` 預留 rembg 模型載入時間。
 
-- [ ] **Step 2: 啟動堆疊並檢查容器狀態**
+- [x] **Step 2: 啟動堆疊並檢查容器狀態**
 
 Run（於 repo 根目錄）:
 
@@ -247,7 +252,7 @@ docker compose ps
 
 Expected: `backend` 狀態最終為 `healthy`（或 `running` 且 healthcheck 通過），`web` 為 `running`。
 
-- [ ] **Step 3: 本機驗證 Nginx 轉發 `/health`**
+- [x] **Step 3: 本機驗證 Nginx 轉發 `/health`**
 
 Run:
 
@@ -255,9 +260,9 @@ Run:
 curl -sS "http://127.0.0.1:8080/health"
 ```
 
-Expected: 與直接打後端時相同結構的 JSON（含 `healthy` 欄位）。
+Expected: 與直接打後端時相同結構的 JSON（例如 `status`、`checks`，見 `backend/app/main.py` 的 `GET /health`）。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docker-compose.yml
@@ -271,7 +276,7 @@ git commit -m "chore(docker): add compose stack for backend and web proxy"
 **Files:**
 - Modify: `README.md`（在「雲端部署（Zeabur）」一節之後或適當位置插入小節）
 
-- [ ] **Step 1: 插入下列 Markdown 段落（可依文件語氣微調用字，但指令與埠號需保留）**
+- [x] **Step 1: 插入下列 Markdown 段落（可依文件語氣微調用字，但指令與埠號需保留）**
 
 ```markdown
 ## Docker（區網／Windows 主機）
@@ -288,10 +293,11 @@ docker compose up -d --build
 - **區網裝置**：在 Windows 以 `ipconfig` 查 IPv4，於手機／其他電腦開 `http://<該IPv4>:8080/`。
 - **防火牆**：視需要允許 **TCP 8080**（或你映射的埠）於「私人網路」連入。
 - **前端 API 基底網址**：與 Zeabur 不同，此模式**不必**設定 `VITE_API_BASE_URL`（未設定時前端使用相對路徑 `/api/...`）。
+- **處理逾時**：後端 `REMOVE_BG_TIMEOUT` 與 Nginx `proxy_read_timeout`／`proxy_send_timeout` 必須一併考量（見 README 與 `frontend/nginx.docker.conf` 註解）。
 - **與 Zeabur 文件分工**：雲端雙服務部署仍見 `docs/plans/2026-04-08-zeabur-deploy-checklist.md`。
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -305,15 +311,15 @@ git commit -m "docs: document Docker Compose LAN usage on Windows"
 **Files:**
 - （無強制新增檔案；若你希望 CI 可重跑，可另開議題加入最小 smoke script）
 
-- [ ] **Step 1: 本機瀏覽器開啟應用並完成去背流程**
+- [x] **Step 1: 本機瀏覽器開啟應用並完成去背流程**
 
 手動：開啟 `http://localhost:8080/`，上傳一張允許格式且小於 10 MB 的圖片，確認可下載去背 PNG。
 
-- [ ] **Step 2: 區網第二裝置**
+- [x] **Step 2: 區網第二裝置**
 
 手動：同一 Wi‑Fi 下以 `http://<Windows區網IP>:8080/` 重複 Step 1。
 
-- [ ] **Step 3: 檢視日誌（故障排除用）**
+- [x] **Step 3: 檢視日誌（故障排除用）**
 
 Run:
 
@@ -322,9 +328,9 @@ docker compose logs --tail=100 web
 docker compose logs --tail=100 backend
 ```
 
-Expected: 無持續性錯誤；若 Nginx 出現 `upstream timed out`，調高 `proxy_read_timeout` 或後端 `REMOVE_BG_TIMEOUT` 後再測。
+Expected: 無持續性錯誤；若 Nginx 出現 `upstream timed out`，先確認 `proxy_read_timeout`／`proxy_send_timeout` **大於** `REMOVE_BG_TIMEOUT` 並預留餘量，再視需要調高兩者後重建 `web` 映像並重測。
 
-- [ ] **Step 4: （選擇性）最終 commit**
+- [x] **Step 4: （選擇性）最終 commit**
 
 若僅調整 README 以外的設定且已在前面任務提交，可略過；若有修正 compose 或 nginx，請單獨提交。
 
