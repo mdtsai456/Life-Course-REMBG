@@ -6,7 +6,7 @@
 
 **架構：** `web` 將 `/api/` 與 `/health` 反向代理至 `backend:8000`；FastAPI 路由已為 `POST /api/remove-background` 與 `GET /health`（`backend/app/routes/images.py`、`backend/app/main.py`）。本機 Vite 的 `/api` 代理（`frontend/vite.config.js`）僅供開發；正式容器內由 Nginx 承接相同路徑語意。
 
-**技術棧：** Docker、Docker Compose、`python:3.11-slim`、`node`（建置階段）、`nginx:alpine`、pip、`npm ci`。
+**技術棧：** Docker、Docker Compose、`python:3.11-slim`、`node`（建置階段）、`nginxinc/nginx-unprivileged:alpine`（執行階段）、pip、`npm ci`。
 
 **對照規格：** `docs/superpowers/specs/2026-04-09-docker-lan-reverse-proxy-design.md`
 
@@ -18,9 +18,10 @@
 
 | 檔案 | 職責 |
 |------|------|
-| `backend/Dockerfile` | 安裝系統依賴（rembg / onnxruntime 常需 `libgomp1` 等）、`pip install -r requirements.txt`、以 uvicorn 監聽 `0.0.0.0:8000`。 |
-| `frontend/nginx.docker.conf` | Nginx：`/` 靜態檔、`/api/` 與 `/health` 轉發後端；上傳大小與逾時對齊產品行為。 |
-| `frontend/Dockerfile` | 多階段：Node `npm ci` + `npm run build`；第二階段 Nginx 提供 `dist` + 上述設定。 |
+| `backend/Dockerfile` | 安裝系統依賴（rembg / onnxruntime 常需 `libgomp1` 等）、`pip install -r requirements.txt`、建立 `appuser`、透過 entrypoint 以非 root 執行 uvicorn 於 `0.0.0.0:8000`。 |
+| `backend/docker-entrypoint.sh` | 以 root 啟動時將 `$STORAGE_ROOT` `chown` 給 `appuser` 後降權執行 CMD（支援具名 volume 掛載）。 |
+| `frontend/nginx.docker.conf` | Nginx：`/` 靜態檔、`/api/` 與 `/health` 轉發後端；上傳大小與逾時對齊產品行為；容器內監聽非特權埠（8080）。 |
+| `frontend/Dockerfile` | 多階段：Node `npm ci` + `npm run build`；第二階段 `nginxinc/nginx-unprivileged` 提供 `dist` + 上述設定。 |
 | `docker-compose.yml`（repo 根目錄） | 定義 `backend`、`web`、內部網路、`web` 的埠映射、後端 healthcheck、選用 volume 持久化 `STORAGE_ROOT`。 |
 | `README.md` | 新增「Docker（區網）」小節：指令、埠、防火牆、與 Zeabur 文件分工。 |
 
@@ -30,6 +31,7 @@
 
 **Files:**
 - Create: `backend/Dockerfile`
+- Create: `backend/docker-entrypoint.sh`（啟動時將 `$STORAGE_ROOT` 擁有者調整為 `appuser`，再以非 root 執行 uvicorn）
 
 - [x] **Step 1: 新增 `backend/Dockerfile`（完整內容如下）**
 
@@ -46,16 +48,24 @@ RUN apt-get update \
     libgomp1 \
   && rm -rf /var/lib/apt/lists/*
 
+RUN groupadd --system appuser \
+  && useradd --system --gid appuser --no-create-home appuser
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+RUN chown -R appuser:appuser /app
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 ENV STORAGE_ROOT=/data/storage
 RUN mkdir -p /data/storage
 
 EXPOSE 8000
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
@@ -100,7 +110,7 @@ git commit -m "chore(docker): add backend image for FastAPI and rembg"
 
 ```nginx
 server {
-  listen 80;
+  listen 8080;
   server_name _;
 
   root /usr/share/nginx/html;
@@ -169,12 +179,12 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.docker.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 ```
 
 - [x] **Step 2: 單獨建置前端映像（此時 Nginx 上游 `backend` 尚不存在，僅驗證 build 與靜態檔層）**
@@ -229,7 +239,7 @@ services:
   web:
     build: ./frontend
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       backend:
         condition: service_healthy
@@ -239,7 +249,7 @@ volumes:
   backend_storage: {}
 ```
 
-說明：`8080:80` 避免在 Windows 上占用 80 埠常見的權限問題；若要以 80 對外，改為 `"80:80"` 並確保作業系統允許綁定。`start_period` 與 `retries` 預留 rembg 模型載入時間。
+說明：`8080:8080` 將主機 8080 對應到容器內 Nginx 監聽的 **8080**（`nginxinc/nginx-unprivileged` 非特權埠）；避免在 Windows 上占用主機 80 埠常見的權限問題。若要以主機 80 對外，改為 `"80:8080"` 並確保作業系統允許綁定。`start_period` 與 `retries` 預留 rembg 模型載入時間。
 
 - [x] **Step 2: 啟動堆疊並檢查容器狀態**
 
@@ -278,7 +288,7 @@ git commit -m "chore(docker): add compose stack for backend and web proxy"
 
 - [x] **Step 1: 插入下列 Markdown 段落（可依文件語氣微調用字，但指令與埠號需保留）**
 
-```markdown
+````markdown
 ## Docker（區網／Windows 主機）
 
 - **目的**：在本機 Docker 上以**單一 HTTP 埠**同時提供前端與 API（Nginx 反向代理），方便同一 Wi‑Fi 下的手機或其他電腦連線。
@@ -295,7 +305,7 @@ docker compose up -d --build
 - **前端 API 基底網址**：與 Zeabur 不同，此模式**不必**設定 `VITE_API_BASE_URL`（未設定時前端使用相對路徑 `/api/...`）。
 - **處理逾時**：後端 `REMOVE_BG_TIMEOUT` 與 Nginx `proxy_read_timeout`／`proxy_send_timeout` 必須一併考量（見 README 與 `frontend/nginx.docker.conf` 註解）。
 - **與 Zeabur 文件分工**：雲端雙服務部署仍見 `docs/plans/2026-04-08-zeabur-deploy-checklist.md`。
-```
+````
 
 - [x] **Step 2: Commit**
 
