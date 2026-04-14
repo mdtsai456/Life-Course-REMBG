@@ -1,4 +1,4 @@
-# Life Course REMBG
+# Life Course: REMBG
 
 - 預覽原圖與去背結果
 - 限制檔案大小為 10 MB
