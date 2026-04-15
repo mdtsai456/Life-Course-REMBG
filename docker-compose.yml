@@ -1,3 +1,5 @@
+name: life-course-rembg
+
 services:
   backend:
     build: ./backend

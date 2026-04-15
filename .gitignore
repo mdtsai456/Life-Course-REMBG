@@ -6,3 +6,5 @@ __pycache__/
 storage/
 frontend/node_modules/
 frontend/.vite/
+docs/.DS_Store
+.DS_Store
