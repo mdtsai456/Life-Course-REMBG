@@ -27,6 +27,7 @@ async def read_and_validate_upload(
         detect_type(contents) if provided, else None.
 
     Raises:
+        HTTPException 400 if the file is empty (EMPTY_FILE_DETAIL).
         HTTPException 413 if the file exceeds max_size.
         HTTPException 415 if detect_type returns a type not in allowed_types.
     """

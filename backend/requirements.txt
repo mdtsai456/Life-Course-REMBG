@@ -1,5 +1,5 @@
-fastapi[standard]>=0.115
-uvicorn[standard]>=0.30
-python-multipart>=0.0.18
-rembg[cpu]>=2.0.50
-pillow>=11.0
+fastapi[standard]>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+python-multipart>=0.0.26
+rembg[cpu]>=2.0.75
+pillow>=12.2.0

@@ -10,8 +10,6 @@ services:
       NUMBA_DISABLE_JIT: "1"
       # U2NET_HOME must point into the volume so model weights survive rebuilds
       U2NET_HOME: /data/storage/u2net
-      # REMOVE_BG_TIMEOUT: "60"
-      # LOG_LEVEL: info
     volumes:
       - backend_storage:/data/storage
     healthcheck:

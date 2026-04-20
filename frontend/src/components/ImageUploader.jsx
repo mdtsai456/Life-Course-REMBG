@@ -105,6 +105,8 @@ export default function ImageUploader({ visible = true }) {
     )
   }
 
+  const downloadName = file ? `${file.name.replace(/\.[^.]+$/, '')}_no_bg.png` : 'background-removed.png'
+
   return (
     <div
       className={`uploader${isDragOver ? ' drag-over' : ''}`}
@@ -167,7 +169,7 @@ export default function ImageUploader({ visible = true }) {
               <img src={resultUrl} alt="去背結果" className="preview-image checkerboard" />
               <a
                 href={resultUrl}
-                download={file ? file.name.replace(/(\.[^.]+)$/, '_no_bg$1').replace(/\.[^.]+$/, '.png') : 'background-removed.png'}
+                download={downloadName}
                 className="download-button"
               >
                 下載

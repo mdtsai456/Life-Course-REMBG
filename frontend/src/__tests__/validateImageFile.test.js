@@ -3,7 +3,9 @@ import { validateImageFile } from '../utils/validateImageFile'
 import { MAX_FILE_SIZE, ALLOWED_IMAGE_TYPES } from '../constants'
 
 function mockFile({ name = 'test.png', type = 'image/png', size = 1024 } = {}) {
-  return { name, type, size }
+  const file = new File(['x'], name, { type })
+  Object.defineProperty(file, 'size', { value: size, configurable: true })
+  return file
 }
 
 describe('validateImageFile', () => {
@@ -15,6 +17,10 @@ describe('validateImageFile', () => {
     const result = validateImageFile(mockFile({ type: 'image/gif' }))
     expect(result).not.toBeNull()
     expect(result.error).toContain('不支援')
+  })
+
+  it('accepts files with an empty MIME type', () => {
+    expect(validateImageFile(mockFile({ type: '' }))).toBeNull()
   })
 
   it('rejects oversized file', () => {

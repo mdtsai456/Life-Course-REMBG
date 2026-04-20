@@ -1,8 +1,8 @@
 # Storage paths：依 `job_id` 落地 input / output（實作與 MVP 測試）
 
-> **狀態：已實作** — 目前 API 同步回應，job 目錄在回傳後即清理；本文保留供參考。
+> **狀態：歷史參考** — 目前 API 同步回應且全程以記憶體處理，不再建立或保留 `input/{job_id}/` / `output/{job_id}/` 目錄；本文保留供先前磁碟落地 MVP 方案參考。
 
-本文說明在現有 **FastAPI + `POST /api/remove-background`** 架構下，如何以環境變數 **`STORAGE_ROOT`** 為根目錄，為每個任務建立 **`input/{job_id}/`** 與 **`output/{job_id}/`**，並用 **curl** 或 **前端** 驗證檔案存在。
+本文原先說明在 **FastAPI + `POST /api/remove-background`** 架構下，如何以環境變數 **`STORAGE_ROOT`** 為根目錄建立 **`input/{job_id}/`** 與 **`output/{job_id}/`**。目前實作已改為純記憶體流程，不再將上傳或輸出檔案落地；以下內容僅供歷史設計與驗收脈絡參考。
 
 ---
 
@@ -35,6 +35,8 @@
 ---
 
 ## 3. 實作步驟（Step by step）
+
+> 目前實作已不再建立 job 目錄，也不使用 `backend/app/storage_paths.py`。以下步驟描述的是先前的磁碟落地方案。
 
 ### Step 1：環境變數與本機預設
 
@@ -82,7 +84,7 @@ storage/
 
 - **方法與路徑**：`POST /api/remove-background`（不變）。
 - **請求**：`multipart/form-data`，欄位名 **`file`**（與現有 `images.py` 一致）。
-- **回應**：主體仍為 **PNG 圖檔**；建議帶 **`X-Job-Id`**，對應磁碟上的 **`input/{job_id}/`** 與 **`output/{job_id}/`**。
+- **目前回應**：主體仍為 **PNG 圖檔**；可帶 **`X-Job-Id`** 作為請求關聯識別，但**不再對應**磁碟上的 `input/{job_id}/` 與 `output/{job_id}/`。
 
 ---
 
@@ -104,6 +106,8 @@ storage/
 
 ### 5.2 用 curl 測試 (Powershell/cmd) [測試成功]
 
+> 目前實作不會保留 job 目錄；這裡原本的磁碟驗證步驟已不適用。現在建議驗證 HTTP 狀態、回應內容，以及（若有）`X-Job-Id` 是否可做請求追蹤。
+
 1. 進入測試檔案放置區(請自行填入測試路徑)
    - `cd [your_test_folder]`
 
@@ -124,10 +128,10 @@ Get-Content ".\headers.txt"
 type headers.txt
 ```
 
-4. 根據 X-Job-Id 查看結果
+4. 目前不再根據 `X-Job-Id` 到磁碟查看結果
 
-- input_path: `backend\{STORAGE_ROOT}\input\{X-Job-Id}\original.png`
-- output_path: `backend\{STORAGE_ROOT}\output\{X-Job-Id}\result.png`
+- API 會直接回傳去背後的 PNG bytes
+- `X-Job-Id` 若存在，僅用於 request correlation，不代表會有對應資料夾
 
 ### 5.3 用前端測試 [測試成功]
 
@@ -136,12 +140,14 @@ type headers.txt
 2. 確認 **後端已先於 8000 埠運行**，否則 proxy 會失敗。
 3. 在頁面上傳一張圖觸發去背
 4. 從瀏覽器開發者工具 **Network** 查看 **`POST /api/remove-background`** 的 **Response Headers**，取得 **`X-Job-Id`**。
-5. 到 **`STORAGE_ROOT`** 下依 **`input/{job_id}/`**、**`output/{job_id}/`** 檢查檔案是否存在。
+5. 確認下載結果正常，並視需要記錄 **`X-Job-Id`** 作為請求追蹤；目前不需再到 **`STORAGE_ROOT`** 檢查目錄。
 
 ### 5.4 驗收條件（Min MVP）[測試成功]
 
-- 不論 **curl** 或 **前端**，完成一次成功去背後，在 **`{STORAGE_ROOT}/input/{id}/`** 與 **`{STORAGE_ROOT}/output/{job_id}/`** 都能看到對應檔案（**input 留底、output 結果**）。
-- **`job_id`** 與該次請求對應（以 **`X-Job-Id`** 為準）。
+> 目前實作不再建立或保留 job 目錄；以下驗收條件已改為反映純記憶體處理。
+
+- 不論 **curl** 或 **前端**，完成一次成功去背後，應直接取得有效的 PNG 回應或下載結果。
+- **`X-Job-Id`** 若存在，僅需能對應該次請求，不再要求磁碟上存在 `input/{job_id}/` / `output/{job_id}/`。
 
 ---
 
@@ -156,8 +162,7 @@ type headers.txt
 ## 7. 檔案索引（實作時會動到的檔案）
 
 - `backend/app/config.py` — `STORAGE_ROOT`
-- `backend/app/storage_paths.py` — 新建（建議）
-- `backend/app/routes/images.py` — 落地寫檔、`X-Job-Id`
+- `backend/app/routes/images.py` — 純記憶體處理、`X-Job-Id`（若保留）僅作請求追蹤
 - `.gitignore` — 忽略 `storage/`（或你的預設目錄）
 
-完成以上步驟後，即可在固定 **`STORAGE_ROOT`** 下，用 **`input/{id}/`** 與 **`output/{id}/`** 完成追溯與除錯。
+若未來重新導入磁碟落地，可再參考本文的歷史步驟；目前預設流程不會在 **`STORAGE_ROOT`** 下保留請求輸入或輸出檔案。

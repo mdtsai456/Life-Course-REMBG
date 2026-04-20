@@ -20,6 +20,7 @@ export default function ProgressStatus({ phase, labels }) {
       <div
         className="progress-bar-track"
         role="progressbar"
+        aria-label={`上傳進度 ${value}%`}
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={100}

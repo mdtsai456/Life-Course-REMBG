@@ -5,6 +5,7 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -77,21 +78,35 @@ app.include_router(images_router)
 @app.get("/health")
 async def health() -> JSONResponse:
     storage_ok = True
+    root = None
+    tmp = None
     try:
         root = get_storage_root()
-        tmp = root / ".health_check"
+        tmp = root / f".health_check.{uuid4().hex}"
         tmp.write_text("ok")
         tmp.unlink()
-    except Exception:
+        tmp = None
+    except OSError as exc:
         storage_ok = False
-        logger.warning("Storage writable check failed for %s", root)
+        logger.warning(
+            "Storage writable check failed for %s: %s",
+            root if root is not None else "<storage root unavailable>",
+            exc,
+        )
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     checks = {
         "rembg": getattr(app.state, "rembg_session", None) is not None,
         "storage_writable": storage_ok,
     }
     healthy = all(checks.values())
-    content = {"status": "ok" if healthy else "loading", "checks": checks}
+    status = "ok" if healthy else "unhealthy" if not storage_ok else "loading"
+    content = {"status": status, "checks": checks}
     load_time = getattr(app.state, "model_load_seconds", None)
     if load_time is not None:
         content["model_loaded_in_s"] = load_time

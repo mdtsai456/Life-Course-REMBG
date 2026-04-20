@@ -26,3 +26,12 @@ async def test_oversized_file_rejected():
     with pytest.raises(HTTPException) as exc_info:
         await read_and_validate_upload(file, max_size=MAX_FILE_SIZE)
     assert exc_info.value.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_oversized_file_size_precheck_rejected():
+    file = UploadFile(filename="big.png", file=io.BytesIO(b"x"))
+    file.size = MAX_FILE_SIZE + 1
+    with pytest.raises(HTTPException) as exc_info:
+        await read_and_validate_upload(file, max_size=MAX_FILE_SIZE)
+    assert exc_info.value.status_code == 413
