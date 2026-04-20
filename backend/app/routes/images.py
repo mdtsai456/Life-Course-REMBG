@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 import uuid
 from functools import partial
 
@@ -94,11 +95,20 @@ async def remove_background(file: UploadFile, request: Request) -> Response:
             detail="圖片儲存失敗，請重試。",
         ) from None
 
+    for subdir in ("input", "output"):
+        job_dir = storage_root / subdir / job_id
+        if job_dir.is_dir():
+            try:
+                shutil.rmtree(job_dir, ignore_errors=True)
+            except Exception:
+                logger.warning("Failed to clean up %s for job_id=%s", job_dir, job_id)
+
     return Response(
         content=result,
         media_type="image/png",
         headers={
             "Content-Disposition": 'attachment; filename="output.png"',
+            "Cache-Control": "no-store",
             "X-Job-Id": job_id,
         },
     )

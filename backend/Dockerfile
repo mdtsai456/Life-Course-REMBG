@@ -23,7 +23,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 ENV STORAGE_ROOT=/data/storage
-RUN mkdir -p /data/storage
+RUN mkdir -p /data/storage && chown appuser:appuser /data/storage
 
 EXPOSE 8000
 
