@@ -5,13 +5,14 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from rembg import new_session
 
-from app.config import get_cors_allowed_origins, is_docs_enabled
+from app.config import get_cors_allowed_origins, get_storage_root, is_docs_enabled
 from app.routes.images import router as images_router
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,13 @@ async def lifespan(app: FastAPI):
     start = time.monotonic()
     app.state.rembg_session = await loop.run_in_executor(None, new_session)
     elapsed = time.monotonic() - start
+    app.state.model_load_seconds = round(elapsed, 1)
     logger.info("rembg model loaded in %.1fs", elapsed)
 
     yield
 
     del app.state.rembg_session
+    del app.state.model_load_seconds
     logger.info("Models unloaded")
 
 
@@ -74,11 +77,40 @@ app.include_router(images_router)
 
 @app.get("/health")
 async def health() -> JSONResponse:
+    storage_ok = True
+    root = None
+    tmp = None
+    try:
+        root = get_storage_root()
+        tmp = root / f".health_check.{uuid4().hex}"
+        tmp.write_text("ok")
+        tmp.unlink()
+        tmp = None
+    except OSError as exc:
+        storage_ok = False
+        logger.warning(
+            "Storage writable check failed for %s: %s",
+            root if root is not None else "<storage root unavailable>",
+            exc,
+        )
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+
     checks = {
         "rembg": getattr(app.state, "rembg_session", None) is not None,
+        "storage_writable": storage_ok,
     }
     healthy = all(checks.values())
+    status = "ok" if healthy else "unhealthy" if not storage_ok else "loading"
+    content = {"status": status, "checks": checks}
+    load_time = getattr(app.state, "model_load_seconds", None)
+    if load_time is not None:
+        content["model_loaded_in_s"] = load_time
     return JSONResponse(
         status_code=200 if healthy else 503,
-        content={"status": "ok" if healthy else "loading", "checks": checks},
+        content=content,
     )

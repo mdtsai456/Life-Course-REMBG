@@ -8,7 +8,7 @@ from functools import partial
 from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
 from rembg import remove
 
-from app.config import get_remove_bg_timeout, get_storage_root
+from app.config import get_remove_bg_timeout
 from app.constants import (
     ALLOWED_IMAGE_MIME_TYPES,
     JPEG_MAGIC,
@@ -16,7 +16,6 @@ from app.constants import (
     WEBP_MAGIC_RIFF,
     WEBP_MAGIC_TAG,
 )
-from app.storage_paths import ensure_job_dirs
 from app.validation import read_and_validate_upload
 
 logger = logging.getLogger(__name__)
@@ -50,7 +49,6 @@ async def remove_background(file: UploadFile, request: Request) -> Response:
         type_error_detail=f"不支援的檔案類型。允許：{allowed}。",
     )
     job_id = str(uuid.uuid4())
-    storage_root = get_storage_root()
 
     session = getattr(request.app.state, "rembg_session", None)
     if session is None:
@@ -83,22 +81,12 @@ async def remove_background(file: UploadFile, request: Request) -> Response:
             detail="圖片處理失敗，請重試。",
         )
 
-    try:
-        input_dir, output_dir = ensure_job_dirs(storage_root, job_id)
-        (input_dir / "original.png").write_bytes(contents)
-        (output_dir / "result.png").write_bytes(result)
-    except Exception:
-        logger.exception("Failed to persist input/output images for job_id=%s", job_id)
-        raise HTTPException(
-            status_code=500,
-            detail="圖片儲存失敗，請重試。",
-        ) from None
-
     return Response(
         content=result,
         media_type="image/png",
         headers={
             "Content-Disposition": 'attachment; filename="output.png"',
+            "Cache-Control": "no-store",
             "X-Job-Id": job_id,
         },
     )

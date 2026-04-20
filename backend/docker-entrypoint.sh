@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 STORAGE_ROOT="${STORAGE_ROOT:-/data/storage}"
 
 if [ "$(id -u)" = "0" ]; then

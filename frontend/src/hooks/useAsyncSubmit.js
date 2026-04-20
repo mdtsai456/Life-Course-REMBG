@@ -4,8 +4,7 @@ import { useCallback, useRef, useState } from 'react'
  * Custom hook encapsulating the shared async submit pattern:
  * abort previous → create AbortController → phase timer → try/catch/finally.
  *
- * Note: after abort(), `loading` remains true until `reset()` is called.
- * Components should call `reset()` in cleanup effects and on visibility changes.
+ * Calling abort() (or reset()) will clear loading and phase immediately.
  *
  * @returns {{ execute, loading, error, phase, abort, reset, abortControllerRef, phaseTimerRef }}
  */
@@ -22,6 +21,8 @@ export default function useAsyncSubmit() {
     abortControllerRef.current?.abort()
     clearTimeout(phaseTimerRef.current)
     clearTimeout(uploadTimerRef.current)
+    setLoading(false)
+    setPhase(null)
   }, [])
 
   const reset = useCallback(() => {

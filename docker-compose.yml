@@ -8,6 +8,7 @@ services:
       DOCS_ENABLED: "false"
       STORAGE_ROOT: /data/storage
       NUMBA_DISABLE_JIT: "1"
+      # U2NET_HOME must point into the volume so model weights survive rebuilds
       U2NET_HOME: /data/storage/u2net
     volumes:
       - backend_storage:/data/storage
@@ -32,6 +33,12 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   backend_storage: {}

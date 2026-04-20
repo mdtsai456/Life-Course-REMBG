@@ -17,13 +17,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
-RUN chown -R appuser:appuser /app
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh \
+  && mkdir -p /data/storage \
+  && chown -R appuser:appuser /app /data/storage
 
 ENV STORAGE_ROOT=/data/storage
-RUN mkdir -p /data/storage
 
 EXPOSE 8000
 

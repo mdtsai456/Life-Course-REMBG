@@ -9,6 +9,8 @@ from fastapi import HTTPException, UploadFile
 
 from app.constants import FILE_TOO_LARGE_DETAIL, MAX_FILE_SIZE
 
+EMPTY_FILE_DETAIL = "檔案不可為空。"
+
 
 async def read_and_validate_upload(
     file: UploadFile,
@@ -25,6 +27,7 @@ async def read_and_validate_upload(
         detect_type(contents) if provided, else None.
 
     Raises:
+        HTTPException 400 if the file is empty (EMPTY_FILE_DETAIL).
         HTTPException 413 if the file exceeds max_size.
         HTTPException 415 if detect_type returns a type not in allowed_types.
     """
@@ -37,6 +40,8 @@ async def read_and_validate_upload(
         raise HTTPException(status_code=413, detail=FILE_TOO_LARGE_DETAIL)
 
     contents = await file.read(max_size + 1)
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail=EMPTY_FILE_DETAIL)
     if len(contents) > max_size:
         raise HTTPException(status_code=413, detail=FILE_TOO_LARGE_DETAIL)
 
