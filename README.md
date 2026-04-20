@@ -29,8 +29,7 @@ npm run dev
 conda create -n rembg python=3.11.15
 conda activate rembg
  
-pip install "rembg[cpu,cli]"
-pip install "fastapi[standard]"
+pip install -r backend/requirements.txt
  
 cd backend
 uvicorn app.main:app --reload
@@ -49,10 +48,10 @@ uvicorn app.main:app --reload
 
 For Zeabur: use two services from the same repo with root directories `frontend` and `backend`. See the checklist above for variables, watch paths, and verification.
 
-## Docker（區網／Windows 主機）
+## Docker（區網分享）
 
 - **目的**：在本機 Docker 上以**單一 HTTP 埠**同時提供前端與 API（Nginx 反向代理），方便同一 Wi‑Fi 下的手機或其他電腦連線。
-- **前置**：已安裝 Docker Desktop（Windows 建議啟用 WSL2 後端）。
+- **前置**：已安裝 Docker Desktop（Windows 建議啟用 WSL2 後端；macOS / Linux 直接使用）。
 - **啟動**（repo 根目錄）：
 
 ```bash
@@ -72,9 +71,4 @@ docker compose up -d --build
 - 沒有 authentication 或 user account 模型
 - 處理流程是同步的，每個 request 都會等待後端回應
 - 沒有 job queue，也沒有額外的結果查詢 API，只有即時下載回應
-
-## 補充 / Notes
-
-- 後端 API 位於 `http://localhost:8000`
-- 前端開發伺服器位於 `http://localhost:5173`
 

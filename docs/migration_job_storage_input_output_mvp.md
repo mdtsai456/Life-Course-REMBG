@@ -1,5 +1,7 @@
 # Standalone migration: Remove Background (FastAPI + rembg + React/Vite)
 
+> **狀態：已完成** — 自原專案拆出的 standalone 路線已與 `main` 整併並驗證通過；本文保留供歷史參考。
+
 **Purpose:** 將「圖片去背」功能自本倉庫拆出為獨立專案（框架不變：FastAPI、rembg、React、Vite），並說明可行性、完整檔案清單、需手動刪改處與操作順序。
 
 **Audience:** 執行拆倉的工程師（非僅複製貼上即可完成）。

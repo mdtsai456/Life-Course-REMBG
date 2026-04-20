@@ -1,5 +1,7 @@
 # Storage paths：依 `job_id` 落地 input / output（實作與 MVP 測試）
 
+> **狀態：已實作** — 目前 API 同步回應，job 目錄在回傳後即清理；本文保留供參考。
+
 本文說明在現有 **FastAPI + `POST /api/remove-background`** 架構下，如何以環境變數 **`STORAGE_ROOT`** 為根目錄，為每個任務建立 **`input/{job_id}/`** 與 **`output/{job_id}/`**，並用 **curl** 或 **前端** 驗證檔案存在。
 
 ---
