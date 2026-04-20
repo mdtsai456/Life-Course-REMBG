@@ -130,9 +130,9 @@ export default function ImageUploader({ visible = true }) {
             disabled={loading}
             className="file-input"
           />
-          <span className="file-button">Choose Image</span>
+          <span className="file-button">選擇圖片</span>
           <span className="file-name">
-            {file ? file.name : 'No file chosen'}
+            {file ? file.name : '未選擇檔案'}
           </span>
         </label>
         <LoadingButton
@@ -140,33 +140,37 @@ export default function ImageUploader({ visible = true }) {
           disabled={!file || loading}
           className="submit-button"
           loading={loading}
-          loadingText="Processing…"
+          loadingText="處理中…"
         >
-          Remove Background
+          移除背景
         </LoadingButton>
         <ProgressStatus phase={phase} labels={UPLOAD_PROGRESS_LABELS} />
       </form>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className="error-message" role="alert">{error}</p>}
+
+      {!file && !loading && !error && (
+        <p className="drop-hint">可拖曳圖片到此，或直接貼上剪貼簿圖片</p>
+      )}
 
       {(originalUrl || resultUrl) && (
         <div className="preview-grid">
           {originalUrl && (
             <div className="preview-card">
-              <h3 className="preview-title">Original</h3>
-              <img src={originalUrl} alt="Original" className="preview-image" />
+              <h3 className="preview-title">原圖</h3>
+              <img src={originalUrl} alt="原圖" className="preview-image" />
             </div>
           )}
           {resultUrl && (
             <div className="preview-card">
-              <h3 className="preview-title">Result</h3>
-              <img src={resultUrl} alt="Background removed" className="preview-image checkerboard" />
+              <h3 className="preview-title">去背結果</h3>
+              <img src={resultUrl} alt="去背結果" className="preview-image checkerboard" />
               <a
                 href={resultUrl}
-                download={file ? file.name.replace(/\.[^.]+$/, '') + '_no_bg.png' : 'background-removed.png'}
+                download={file ? file.name.replace(/(\.[^.]+)$/, '_no_bg$1').replace(/\.[^.]+$/, '.png') : 'background-removed.png'}
                 className="download-button"
               >
-                Download
+                下載
               </a>
             </div>
           )}

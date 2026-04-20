@@ -1,7 +1,6 @@
 export default function ProgressStatus({ phase, labels }) {
   if (!phase || !labels) return null
 
-  const widthMap = { uploading: '45%', processing: '90%', done: '100%' }
   const transitionMap = {
     uploading: 'width 1s ease-out',
     processing: 'width 4s ease-in-out',
@@ -13,13 +12,22 @@ export default function ProgressStatus({ phase, labels }) {
     : phase === 'processing' ? labels.processing
     : null
 
+  const valueMap = { uploading: 45, processing: 90, done: 100 }
+  const value = valueMap[phase] ?? 0
+
   return (
-    <div className="progress-status">
-      <div className="progress-bar-track">
+    <div className="progress-status" role="status" aria-live="polite">
+      <div
+        className="progress-bar-track"
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className="progress-bar-fill"
           style={{
-            width: widthMap[phase] ?? '0%',
+            width: `${value}%`,
             transition: transitionMap[phase] ?? 'none',
           }}
         />
